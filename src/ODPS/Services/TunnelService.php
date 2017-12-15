@@ -13,8 +13,7 @@ use ODPS\Services\Tunnel\UploadSession;
  *
  * @package ODPS\Services
  */
-class TunnelService extends \ODPS\Core\OdpsBase
-{
+class TunnelService extends \ODPS\Core\OdpsBase {
     const HEADER_ODPS_REQUEST_ID = "x-odps-request-id";
     const HEADER_ODPS_TUNNEL_VERSION = "x-odps-tunnel-version";
     const HEADER_STREAM_VERSION = "x-odps-tunnel-stream-version";
@@ -49,24 +48,32 @@ class TunnelService extends \ODPS\Core\OdpsBase
      * @param  string $partition
      * @return UploadSession
      */
-    public function createUploadSession($tableName, $partition = null)
-    {
+    public function createUploadSession($tableName, $partition = null) {
         $body = $this->_createSession("uploads", $tableName, $partition);
         return new UploadSession($this->odpsClient, $partition, json_decode($body), $tableName, $this->_getTunnelServer());
     }
 
-    public function createDownloadSession($tableName, $partition = null)
-    {
+    /**
+     * Create an serssion for downloading
+     * @param $tableName 表名称
+     * @param $partition 筛选条件 多条见用逗号分隔 如 source=zmt,snapshot_id=20171213142838 其中字符串不用引号包裹 
+     * */
+    public function createDownloadSession($tableName, $partition = null) {
         $body = $this->_createSession("downloads", $tableName, $partition);
         $downloadSession = new DownloadSession($this->odpsClient, $partition, json_decode($body), $tableName, $this->_getTunnelServer());
         $downloadSession->setCurrProject($this->getCurrProject());
         return $downloadSession;
     }
 
-    private function _createSession($subResource, $tableName, $partition = null)
-    {
+    /**
+     * 私有方法，创建session
+     * @param $subResource 类型 uploads/downloads
+     * @param $tableName   表名
+     * @param $partition   筛选条件
+     * @return $body
+     * */
+    private function _createSession($subResource, $tableName, $partition = null) {
         $resource = ResourceBuilder::buildTableUrl($this->getDefaultProjectName(), $tableName);
-
         $options = array(
             OdpsClient::ODPS_METHOD => "POST",
             OdpsClient::ODPS_RESOURCE => $resource,
@@ -79,27 +86,20 @@ class TunnelService extends \ODPS\Core\OdpsBase
             ),
             OdpsClient::ODPS_ENDPOINT => $this->_getTunnelServer()
         );
-
         return $this->call($options)->body;
     }
 
-    private function _getTunnelServer()
-    {
+    private function _getTunnelServer() {
         if (empty($this->tunnelServer)) {
             $resource = ResourceBuilder::buildTunnelUrl($this->getDefaultProjectName());
-
             $options = array(
                 OdpsClient::ODPS_METHOD => "GET",
                 OdpsClient::ODPS_RESOURCE => $resource,
                 OdpsClient::ODPS_SUB_RESOURCE => "service"
             );
-
             $rst = $this->call($options);
-
             $this->tunnelServer = parse_url($this->odpsClient->getEndpoint())["scheme"] . "://" . $rst->body;
-
         }
         return $this->tunnelServer;
-
     }
 }
