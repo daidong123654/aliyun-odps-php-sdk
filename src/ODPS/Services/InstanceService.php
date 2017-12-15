@@ -13,6 +13,11 @@ use ODPS\Core\OdpsClient;
  */
 class InstanceService extends \ODPS\Core\OdpsBase
 {
+    /**
+     *  查看 instance 状态
+     *  @param $instancename    请求的 instance 名称
+     *  @return $obj->getInstance($instancename)->Status [ Suspended、 Running 和 Terminated 三种] 
+     * */
     public function getInstance($instancename)
     {
         $resource = ResourceBuilder::buildInstanceUrl($this->getDefaultProjectName(), $instancename);
@@ -70,16 +75,41 @@ class InstanceService extends \ODPS\Core\OdpsBase
         );
     }
 
-    public function getInstanceTask($instancename)
-    {
+    /**
+    * 查看 instance 中 task 状态
+    * @param $instancename 请求的 instance 名称
+    * @return $taskStatus = $instance->getInstanceTask($instanceId)->Tasks->Task->Status;
+    *   XML: 自行处理 
+    *   <?xml version="1.0" encoding="UTF-8"?>
+    *       <Instance>
+    *           <Status>Terminated</Status>
+    *           <Tasks>
+    *               <Task Type="SQL">
+    *               <Name>@task</Name>
+    *               <StartTime>Fri, 15 Dec 2017 14:02:04 GMT</StartTime>
+    *               <EndTime>Fri, 15 Dec 2017 14:02:16 GMT</EndTime>
+    *               <Status>Success</Status>
+    *               <Histories/>
+    *               </Task>
+    *           </Tasks>
+    *       </Instance>
+    *   参数        描述
+    *   Instance    Instance 描述
+    *   Status      Instance 状态
+    *   Tasks       Instance 中 task 列表描述
+    *   Task        Task 描述
+    *   Name        Task 名称
+    *   StartTime   Task 开始时间
+    *   EndTime     Task 结束时间 
+    *   Status      Task 状态
+    */
+    public function getInstanceTask($instancename) {
         $resource = ResourceBuilder::buildInstanceUrl($this->getDefaultProjectName(), $instancename);
-
         $options = array(
             OdpsClient::ODPS_METHOD => "GET",
             OdpsClient::ODPS_RESOURCE => $resource,
             OdpsClient::ODPS_SUB_RESOURCE => "taskstatus"
         );
-
         return $this->call($options);
     }
 

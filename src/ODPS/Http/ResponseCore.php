@@ -17,7 +17,7 @@ class ResponseCore
      * Stores the SimpleXML response.
      */
     public $body;
-
+    public $bodyArr;
     /**
      * Stores the HTTP response code.
      */
@@ -35,9 +35,6 @@ class ResponseCore
     {
         $this->header = $header;
         $this->body = $body;
-
-        $this->body = $body;
-
         $this->status = $status;
 
         if ($status < 400) {
@@ -74,9 +71,13 @@ class ResponseCore
                 }
 
                 if ($responseObj) {
+                    // store xml in $this
                     foreach (get_object_vars($responseObj) as $key => $value) {
                         $this->$key = $value;
                     }
+                    // store xml as $this->bodyArr
+                    libxml_disable_entity_loader(true); 
+                    $this->bodyArr = json_decode(json_encode($responseObj), true); 
                 }
             }
         } catch (\Exception $error) {
