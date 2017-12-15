@@ -30,31 +30,48 @@ class InstanceService extends \ODPS\Core\OdpsBase
         return $this->call($options);
     }
 
-    public function getInstanceDetail($instancename, $taskName)
-    {
+    /**
+     * get instance detail 操作用于获取 instance 详细信息。
+     * @param $instancname    instance 的名称
+     * @param $taskname       指定查询的Taskname; 必选参数，如果未输入，返回400错误
+     * @url http://repo.aliyun.com/api-doc/Instance/get_instance_detail/index.html
+     * */
+    public function getInstanceDetail($instancename, $taskName) {
         return $this->_getInstanceAction($instancename, $taskName, "instancedetail");
     }
 
-    public function getInstanceProgress($instancename, $taskName)
-    {
+    /**
+     * 目测不好使,可以用 getInstanceTask 代替
+     * get instance progress 操作用于获取 instance task 的执行进度。
+     * @param $instancname    instance 的名称
+     * @param $taskname    指定查询的Taskname; 必选参数，如果未输入，返回400错误
+     * @url http://repo.aliyun.com/api-doc/Instance/get_instance_progress/index.html
+     * */
+    public function getInstanceProgress($instancename, $taskName) {
         return $this->_getInstanceAction($instancename, $taskName, "instanceprogress");
     }
 
-    public function getInstanceSummary($instancename, $taskName)
-    {
+    /**
+     * get instance summary 操作用于获取 instance task 的总结信息。
+     * @param $instancname    instance 的名称
+     * @param $taskname    指定查询的Taskname; 必选参数，如果未输入，返回400错误
+     * @url http://repo.aliyun.com/api-doc/Instance/get_instance_summary/index.html
+     * */
+    public function getInstanceSummary($instancename, $taskName) {
         return $this->_getInstanceAction($instancename, $taskName, "instancesummary");
     }
 
-    public function getInstancesInternal($paras)
-    {
+    /**
+     * 根据参数获取全部instances 容器使用，亦可外部使用 
+     * @parse 参数列表, 具体见 getInstances
+     * */
+    public function getInstancesInternal($paras){
         $resource = ResourceBuilder::buildInstancesUrl($this->getDefaultProjectName());
-
         $options = array(
             OdpsClient::ODPS_METHOD => "GET",
             OdpsClient::ODPS_RESOURCE => $resource,
             OdpsClient::ODPS_PARAMS => $paras
         );
-
         return $this->call($options);
     }
 
@@ -76,6 +93,16 @@ class InstanceService extends \ODPS\Core\OdpsBase
      * @return OdpsIterator object
      * */
     public function getInstances($daterange = null, $status = null, $jobname = null, $onlyowner = null) {
+        /**
+         * 迭代器遍历
+         * $it = new OdpsIterator();
+         * $it->rewind();
+         * while ($it->valid()){
+         *     # $key = $it->key();  无key
+         *     $value = $it->current();
+         *     $it->next();
+         * }
+         * */   
         return new OdpsIterator(
             array(
                 "obj" => $this,
@@ -130,13 +157,21 @@ class InstanceService extends \ODPS\Core\OdpsBase
     }
 
     /**
+     * 创建一个SQL任务并返回任务ID(instance name)
+     *      ODPS Instance 是用户作业运行的实例，
+     *      分为以下几种类型：
+     *          SQL, 
+     *          SQLPLAN, 
+     *          MapReduce, 
+     *          DT, 
+     *          PLSQL。
+     *      用户可以提交不同种类的 Task 来创建对应的 Instance 实例。
      * @param $taskName
      * @param $comment
      * @param $query
      * @return return InstanceName if success,otherwise return original result
      */
-    public function postSqlTaskInstance($taskName, $comment, $query)
-    {
+    public function postSqlTaskInstance($taskName, $comment, $query) {
         $content = <<<EOT
 <?xml version="1.0" ?>
 <Instance><Job><Priority>9</Priority><Tasks>
@@ -154,26 +189,32 @@ class InstanceService extends \ODPS\Core\OdpsBase
 </Tasks></Job></Instance>
 EOT;
         $resource = ResourceBuilder::buildInstancesUrl($this->getDefaultProjectName());
-
         $options = array(
-            OdpsClient::ODPS_METHOD => "POST",
+            OdpsClient::ODPS_METHOD   => "POST",
             OdpsClient::ODPS_RESOURCE => $resource,
-            OdpsClient::ODPS_CONTENT => $content,
+            OdpsClient::ODPS_CONTENT  => $content,
             OdpsClient::ODPS_CONTENT_TYPE => OdpsClient::XmlContentType
         );
-
         return $this->_getInstanceName($this->call($options));
     }
 
     /**
+     * 提交一个 ODPS SQL Plan任务，常用与预估 SQL 任务的消耗。
+     * ODPS Instance 是用户作业运行的实例，
+     *      分为以下几种类型：
+     *          SQL, 
+     *          SQLPLAN, 
+     *          MapReduce, 
+     *          DT, 
+     *          PLSQL。
+     *      用户可以提交不同种类的 Task 来创建对应的 Instance 实例。
      * @param $taskName
      * @param $comment
      * @param $properties
      * @param $query
      * @return return InstanceName if success,otherwise return original result
      */
-    public function postSqlPlanTaskInstance($taskName, $comment, $properties, $query)
-    {
+    public function postSqlPlanTaskInstance($taskName, $comment, $properties, $query) {
         $propertiesXml = "";
 
         if (is_array($properties) && !empty($properties)) {
@@ -184,7 +225,6 @@ EOT;
                 $propertiesXml .= "<Value>" . $v . "</Value>";
                 $propertiesXml .= "</Property>";
             }
-
             $propertiesXml .= "</Config>";
         }
 
@@ -200,19 +240,20 @@ EOT;
 </Tasks></Job></Instance>
 EOT;
         $resource = ResourceBuilder::buildInstancesUrl($this->getDefaultProjectName());
-
         $options = array(
             OdpsClient::ODPS_METHOD => "POST",
             OdpsClient::ODPS_RESOURCE => $resource,
             OdpsClient::ODPS_CONTENT => $content,
             OdpsClient::ODPS_CONTENT_TYPE => OdpsClient::XmlContentType
         );
-
         return $this->_getInstanceName($this->call($options));
     }
 
-    public function terminateInstance($instanceName)
-    {
+    /**
+     * put instance terminated 操作用于中止 instance。 
+     * @param $instanceName Instance id
+     * */
+    public function terminateInstance($instanceName) {
         $resource = ResourceBuilder::buildInstanceUrl($this->getDefaultProjectName(), $instanceName);
 
         $content = <<<EOT
@@ -228,30 +269,33 @@ EOT;
             OdpsClient::ODPS_CONTENT => $content,
             OdpsClient::ODPS_CONTENT_TYPE => OdpsClient::XmlContentType
         );
-
         return $this->call($options);
-
     }
 
-    private function _getInstanceAction($instancename, $taskName, $action)
-    {
+    /**
+     * 私有工具方法 用于获取 detail/summary/progress
+     * @param $instancename Instance id
+     * @param $taskName     任务名称
+     * @param $action       操作 [instancedetail, instanceprogress, instancesummary ]
+     * */
+    private function _getInstanceAction($instancename, $taskName, $action) {
         $resource = ResourceBuilder::buildInstanceUrl($this->getDefaultProjectName(), $instancename);
-
         $options = array(
-            OdpsClient::ODPS_METHOD => "GET",
-            OdpsClient::ODPS_RESOURCE => $resource,
+            OdpsClient::ODPS_METHOD    => "GET",
+            OdpsClient::ODPS_RESOURCE  => $resource,
             OdpsClient::ODPS_SUB_RESOURCE => $action,
             OdpsClient::ODPS_PARAMS => array(
                 "taskname" => $taskName
             )
         );
-
         return $this->call($options);
     }
 
-    private function _getInstanceName($rst)
-    {
-
+    /**
+     * 获取 Instance name
+     * @param $rst
+     * */
+    private function _getInstanceName($rst) {
         if (isset($rst->header["location"])) {
             $location = $rst->header["location"];
             $locationUrl = parse_url($location);
