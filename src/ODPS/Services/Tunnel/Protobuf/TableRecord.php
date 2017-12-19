@@ -10,8 +10,8 @@ use \PBTypes;
  *
  * @package ODPS\Services\Tunnel\Protobuf
  */
-class TableRecord extends PBMessage
-{
+class TableRecord extends PBMessage{
+
     const COLUMN_BIGINT = "BIGINT";
     const COLUMN_BOOLEAN = "BOOLEAN";
     const COLUMN_DATETIME = "DATETIME";
@@ -79,10 +79,11 @@ class TableRecord extends PBMessage
         $retArr = array();
         foreach ($this->fields as $index => $field) {
             if (strval($index) !== PBMessage::TUNNEL_END_RECORD) {
-                $retArr[] = $this->values[$index]->value;
+                // 判断类型，datetime 需要格式化
+                @$retArr[] = ($this->values[$index]->value instanceof \DateTime) ? $this->values[$index]->value->format('Y-m-d H:i:s') : $this->values[$index]->value;
+                // @$retArr[] = $this->values[$index]->value;
             }
         }
-
         return $retArr;
     }
 
@@ -95,8 +96,7 @@ class TableRecord extends PBMessage
      * @param  $value
      * @throws \ODPS\Core\OdpsException
      */
-    public function setColumnValue($index, $columnType, $value)
-    {
+    public function setColumnValue($index, $columnType, $value){
         $this->addColumn($index, $columnType);
         $this->_set_value("$index", $value);
     }
